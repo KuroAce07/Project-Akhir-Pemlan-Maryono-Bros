@@ -13,7 +13,7 @@ tk.configure(bg='purple')
 data = []
 
 def cetak():
-    my_image = Image.open("tes.png")
+    my_image = Image.open("card.png")
     #NAMA
     nama = E1.get()
     nama_font = ImageFont.truetype("arial.ttf",40)
@@ -51,7 +51,7 @@ def cetak():
     image_editable = ImageDraw.Draw(my_image)
     image_editable.text((630,400), job_text, (0, 0, 0), font=job_font)
     my_image.show()
-    my_image.save("result.png")
+    my_image.save(nama+".png")
 
 def add():
     lst = [E1.get(),E2.get(),E3.get(),E4.get(),E5.get(),E6.get()]
@@ -116,5 +116,3 @@ button.grid(row = 8, column = 1, sticky = W, pady = 2)
 button=tkinter.Button(tk, text='KELUAR', bg="blue", fg="White", width=20, command=tk.quit)
 button.grid(row = 9, column = 1, sticky = W, pady = 2)
 tk.mainloop()
-
-#NOTE GA EFEKTIF BISA PAKE LOOP DAN TIDAK PERLU STORE SETIAP GET ENTRY DAN FONT JUGA BISA BERSAMA

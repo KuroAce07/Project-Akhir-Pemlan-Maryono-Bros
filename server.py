@@ -28,14 +28,14 @@ while True:
               break
           f.write(bytes_read)
           progress.update(len(bytes_read))
-  elif kode=="update":
-    with open(filename, "wb") as f:
-      while True:
-          bytes_read = client_socket.recv(BUFFER_SIZE)
-          if not bytes_read:    
-              break
-          f.write(bytes_read)
-          progress.update(len(bytes_read))
+  # elif kode=="update":
+  #   with open(filename, "wb") as f:
+  #     while True:
+  #         bytes_read = client_socket.recv(BUFFER_SIZE)
+  #         if not bytes_read:    
+  #             break
+  #         f.write(bytes_read)
+  #         progress.update(len(bytes_read))
   #send file
   elif kode == "download":
     with open(filename, "rb") as f:

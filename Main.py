@@ -90,15 +90,6 @@ def adminpage(tk, box, f1, f2, frame1, frame2):
                              text='View',
                              command=lambda:viewadmin(tv1))
     button1.place(relx=0.0, rely=0.1)
-    # ## Edit
-    # button2 = tkinter.Button(frame2,
-    #                          text='Edit')
-    # button2.place(relx=0.08, rely=0.1)
-    # ## Remove
-    # button3 = tkinter.Button(frame2,
-    #                          text='Remove',
-    #                          command=lambda:remove(tv1))
-    # button3.place(relx=0.15, rely=0.1)
     ## Add Data
     button4 = tkinter.Button(frame2,
                              text='Add Data',
@@ -207,7 +198,6 @@ def sukseslogin(EA, EB, tk, box, f1, f2, frame1, frame2):
             for kolom in baris.split(","):
                 baris_temp.append(kolom.rstrip())
             dt.append(baris_temp)
-            # dt.append(baris.split(','))
         print(dt)
         with open("Data.csv", "w", newline='') as f:
             w = writer(f, delimiter=',')
@@ -250,9 +240,6 @@ def save():
 
 def upload(value):
     messagebox.askokcancel("Warning", "Data Akan Diupload Ke Database")
-
-
-
     if value == 'regis':
         kode = "upload"
     elif value == 'remove':
@@ -329,36 +316,6 @@ def cetakkartu(my_image, image_editable, value, count):
         my_image.paste(my_foto,(666,140))
         my_image.show()
         my_image.save('result.png')
-
-# def remove(tv1):
-#     # Konfirmasi
-#     res = messagebox.askquestion("Confirmation", "Data akan dihapus. \nApakah Anda yakin?")
-#     if res == 'yes':
-#         pass
-#     else:
-#         return None
-
-#     file_name = 'data.csv'
-#     selected = tv1.focus()
-#     details = tv1.item(selected)
-#     value = details.get('values')[0]
-#     print(details)
-    
-#     df = pd.read_csv(file_name)
-
-#     with open(file_name, 'w', newline='\n') as f:
-#         w = writer(f, delimiter=',')
-#         for baris in df:
-#             if value in baris:
-#                 continue
-#             else:
-#                 w.writerows(baris)
-
-#     # df = df.drop(df[(df.a == value)].index)
-#     # df.to_csv(file_name, encoding='utf-8', index=False)
-
-#     upload('remove')
-#     treeload(tv1)
 
 if __name__ == '__main__':
     tk = tkinter.Tk()

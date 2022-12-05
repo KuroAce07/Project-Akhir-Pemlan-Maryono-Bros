@@ -1,118 +1,389 @@
+import os
+import tqdm
+import csv
+import socket
 import tkinter
+import pandas as pd
 from csv import *
 from tkinter import *
-from PIL import Image, ImageFont, ImageDraw 
-from tkinter import messagebox
+from tkinter import filedialog, messagebox, ttk
+from PIL import Image, ImageFont, ImageDraw
+from pathlib import Path
 
-tk = tkinter.Tk()
-tk.title("Data Base System")
-#canvas=tkinter.Canvas(tk, width=300, height=300)
-#canvas.grid()
-tk.geometry()
-tk.configure(bg='purple')
-data = []
 
-def cetak():
-    my_image = Image.open("card.png")
-    #NAMA
-    nama = E1.get()
-    nama_font = ImageFont.truetype("arial.ttf",40)
-    nama_text = nama
-    image_editable = ImageDraw.Draw(my_image)
-    image_editable.text((50,140), nama_text, (0, 0, 0), font=nama_font)
-    #TTL
-    ttl = E2.get()
-    ttl_font = ImageFont.truetype("arial.ttf",40)
-    ttl_text = ttl
-    image_editable = ImageDraw.Draw(my_image)
-    image_editable.text((350,270), ttl_text, (0, 0, 0), font=ttl_font)
-    #KELAMIN
-    kelamin = E3.get()
-    kelamin_font = ImageFont.truetype("arial.ttf",40)
-    kelamin_text = kelamin
-    image_editable = ImageDraw.Draw(my_image)
-    image_editable.text((50,270), kelamin_text, (0, 0, 0), font=kelamin_font)
-    #AGAMA
-    agama = E4.get()
-    agama_font = ImageFont.truetype("arial.ttf",40)
-    agama_text = agama
-    image_editable = ImageDraw.Draw(my_image)
-    image_editable.text((50,400), agama_text, (0, 0, 0), font=agama_font)
-    #ALAMAT
-    alamat = E5.get()
-    alamat_font = ImageFont.truetype("arial.ttf",40)
-    alamat_text = alamat
-    image_editable = ImageDraw.Draw(my_image)
-    image_editable.text((330,400), alamat_text, (0, 0, 0), font=alamat_font)
-    #PEKERJAAN
-    job = E6.get()
-    job_font = ImageFont.truetype("arial.ttf",40)
-    job_text = job
-    image_editable = ImageDraw.Draw(my_image)
-    image_editable.text((630,400), job_text, (0, 0, 0), font=job_font)
-    my_image.show()
-    my_image.save(nama+".png")
+#Deklarasi Client
+SEPARATOR = "<SEPARATOR>"
+BUFFER_SIZE = 4096
+host = "127.0.0.1"
+port = 6969
 
-def add():
-    lst = [E1.get(),E2.get(),E3.get(),E4.get(),E5.get(),E6.get()]
-    data.append(lst)
-    messagebox.showinfo("Information","Data Telah Berhasil Ditambahkan")
+header = ['Nama', 'TTL', 'Jenis Kelamin', 'Agama', 'Alamat', 'Pekerjaan']
+tempdata = []
+
+def raise_frame(frame):
+    frame.tkraise()
+
+def toppage(tk, box, f1, f2, frame1, frame2):
+    f2.pack_forget()
+    frame1.place_forget()
+    frame2.place_forget()
+    raise_frame(f1)
+    f1.pack()
+
+    L = Label(f1,fg='black', text="User")
+    L.grid(row=2, column=0, sticky=W, pady=2)
+    EA = Entry(f1, fg="white", bg="blue", width=25)
+    EA.grid(row=2, column=1, pady=2)
+    L = Label(f1, fg='black', text="Password")
+    L.grid(row=3, column=0, sticky=W, pady=2)
+    EB = Entry(f1, fg="white", bg="blue", width=25,show='*')
+    EB.grid(row=3, column=1, pady=2)
+
+    button = tkinter.Button(f1,
+                            text='REGISTER',
+                            bg="blue",
+                            fg="White",
+                            width=20,
+                            command=lambda:registerpage(tk, f1, f2, frame1, frame2))
+    button.grid(row=0, column=0, sticky=W, pady=2)
+
+    button = tkinter.Button(f1,
+                            text='LOGIN',
+                            bg="blue",
+                            fg="White",
+                            width=20,
+                            command=lambda:sukseslogin(EA, EB, tk, box, f1, f2, frame1, frame2))
+    button.grid(row=4, column=0, sticky=W, pady=2)
+
+    button = tkinter.Button(f1,
+                            text='EXIT',
+                            bg="blue",
+                            fg="White",
+                            width=20,
+                            command=exit)
+    button.grid(row=4, column=1, sticky=W, pady=2)
+
+def adminpage(tk, box, f1, f2, frame1, frame2):
+    box.config(width=500, height=510)
+    f1.pack_forget()
+    f2.pack_forget()
+    raise_frame(frame1)
+    frame1.place(height=400, width=500, relx=0.5, rely=0.4, anchor=CENTER)
+    raise_frame(frame2)
+    frame2.place(height=55, width=500, relx=0.5, rely=0.87, anchor=CENTER)
+
+    # Treeview Widget
+    tv1 = ttk.Treeview(frame1)
+    tv1.place(relheight=1, relwidth=1)
+
+    treeload(tv1)
+
+    tvscroll_x = tkinter.Scrollbar(frame1,orient='horizontal',command=tv1.xview)
+    tvscroll_y = tkinter.Scrollbar(frame1,orient='vertical',command=tv1.yview)
+    tv1.configure(xscrollcommand=tvscroll_x.set,yscrollcommand=tvscroll_y.set)
+    tvscroll_x.pack(side='bottom',fill='x')
+    tvscroll_y.pack(side='right',fill='y')
+
+    # Buttons
+    ## View
+    button1 = tkinter.Button(frame2,
+                             text='View',
+                             command=lambda:viewadmin(tv1))
+    button1.place(relx=0.0, rely=0.1)
+    # ## Edit
+    # button2 = tkinter.Button(frame2,
+    #                          text='Edit')
+    # button2.place(relx=0.08, rely=0.1)
+    # ## Remove
+    # button3 = tkinter.Button(frame2,
+    #                          text='Remove',
+    #                          command=lambda:remove(tv1))
+    # button3.place(relx=0.15, rely=0.1)
+    ## Add Data
+    button4 = tkinter.Button(frame2,
+                             text='Add Data',
+                             command=lambda:registerpage(tk, f1, f2, frame1, frame2))
+    button4.place(relx=0.873, rely=0.1)
+
+def registerpage(tk, f1, f2, frame1, frame2):
+    f1.pack_forget()
+    frame1.place_forget()
+    frame2.place_forget()
+    raise_frame(f2)
+    f2.pack()
+    all_E = []
+    # NAMA
+    L1 = Label(f2, fg='black', text="Nama")
+    L1.grid(row=0, column=0, sticky=W, pady=2)
+    E1 = Entry(f2, fg="white", bg="blue", width=25)
+    E1.grid(row=0, column=1, pady=2)
+    all_E.append(E1)
+    # TTL
+    L2 = Label(f2, fg='black', text="Tanggal Lahir")
+    L2.grid(row=1, column=0, sticky=W, pady=2)
+    E2 = Entry(f2, fg="white", bg="blue", width=25)
+    E2.grid(row=1, column=1, pady=2)
+    all_E.append(E2)
+    # KELAMIN
+    L3 = Label(f2, fg='black', text="Jenis Kelamin")
+    L3.grid(row=2, column=0, sticky=W, pady=2)
+    E3 = Entry(f2, fg="white", bg="blue", width=25)
+    E3.grid(row=2, column=1, pady=2)
+    all_E.append(E3)
+    # AGAMA
+    L4 = Label(f2, fg='black', text="Agama")
+    L4.grid(row=3, column=0, sticky=W, pady=2)
+    E4 = Entry(f2, fg="white", bg="blue", width=25)
+    E4.grid(row=3, column=1, pady=2)
+    all_E.append(E4)
+    # ALAMAT
+    L5 = Label(f2, fg='black', text="Alamat")
+    L5.grid(row=4, column=0, sticky=W, pady=2)
+    E5 = Entry(f2, fg="white", bg="blue", width=25)
+    E5.grid(row=4, column=1, pady=2)
+    all_E.append(E5)
+    # PEKERJAAN
+    L6 = Label(f2, fg='black', text="Pekerjaan")
+    L6.grid(row=5, column=0, sticky=W, pady=2)
+    E6 = Entry(f2, fg="white", bg="blue", width=25)
+    E6.grid(row=5, column=1, pady=2)
+    all_E.append(E6)
+
+    # ADD
+    button = tkinter.Button(f2,
+                            text='TAMBAHKAN DATA',
+                            bg="blue",
+                            fg="White",
+                            width=20,
+                            command=lambda:add(all_E))
+    button.grid(row=6, column=1, sticky=W, pady=2)
+
+    # SAVE
+    button = tkinter.Button(f2, text='SIMPAN DATA', bg="blue", fg="White", width=20, command=save)
+    button.grid(row=7, column=1, sticky=W, pady=2)
+
+    # UPLOAD
+    button = tkinter.Button(f2, text='UPLOAD DATA', bg="blue", fg="White", width=20, command=lambda:upload('regis'))
+    button.grid(row=8, column=1, sticky=W, pady=2)
+
+    # CETAK
+    button = tkinter.Button(f2,
+                            text='CETAK KARTU',
+                            bg="blue",
+                            fg="White",
+                            width=20,
+                            command=lambda:viewregis(all_E))
+    button.grid(row=9, column=1, sticky=W, pady=2)
+
+    # EXIT
+    button = tkinter.Button(f2, 
+                            text='KELUAR', 
+                            bg="blue", 
+                            fg="White", 
+                            width=20,
+                            command=lambda:toppage(tk, box, f1, f2, frame1, frame2))
+    button.grid(row=10, column=1, sticky=W, pady=2)
+
+def sukseslogin(EA, EB, tk, box, f1, f2, frame1, frame2):
+    a_user, a_pass = ["admin", "admin"]
+    if EA.get() == a_user and EB.get() == a_pass:
+        messagebox.showinfo("Login Page","Selamat Anda Berhasil Login")
+        kode = "download"
+        filename = "Data Base.csv"
+        filesize = os.path.getsize(filename)
+        filesize = int(filesize)
+        s = socket.socket()
+        print(f"[+] Connecting to {host}:{port}")
+        s.connect((host, port))
+        print("[+] Connected.")
+        s.send(f"{filename}{SEPARATOR}{filesize}{SEPARATOR}{kode}".encode())
+        temp_data = s.recv(BUFFER_SIZE).decode()
+        data_raw = temp_data.split("\n")
+        dt = []
+        for baris in data_raw:
+            if len(baris) == 0:
+                continue
+            baris_temp = []
+            for kolom in baris.split(","):
+                baris_temp.append(kolom.rstrip())
+            dt.append(baris_temp)
+            # dt.append(baris.split(','))
+        print(dt)
+        with open("Data.csv", "w", newline='') as f:
+            w = writer(f, delimiter=',')
+            for baris in dt:
+                w.writerow(baris)
+        s.close()
+        adminpage(tk, box, f1, f2, frame1, frame2)
+    else:
+        messagebox.askretrycancel("Login Page","Username dan Password Salah")
+
+def viewregis(all_E):
+    count = 0
+
+    my_image = Image.open('card.png')
+    image_editable = ImageDraw.Draw(my_image)
+    for i in all_E:
+        cetakkartu(my_image, image_editable, i.get(), count)
+        count += 1
+    del count
+
+def add(all_E):
+    clearcsv('data.csv')
+    lst = []
+    for i in all_E:
+        lst.append(i.get())
+    tempdata.append(lst)
+    messagebox.showinfo("DATA BASE", "Data Telah Berhasil Ditambahkan")
 
 def save():
-    with open("data.csv","w") as file:
+    messagebox.showwarning("Warning","Data Akan Tersimpan Secara Permanen")
+    path_to_file = "Data.csv"
+    path = Path(path_to_file)
+    with open("Data.csv","a",newline="\n") as file:
         Writer=writer(file)
-        Writer.writerow(["Nama","TTL","Kelamin","Agama","Alamat","Pekerjaan"])
-        Writer.writerows(data)
-        messagebox.showinfo("Information","Saved succesfully")
+        for data in tempdata:
+            Writer.writerow(data)
+        print(data)
+        messagebox.showinfo("DATA BASE","Data Telah Berhasil Disimpan")
+    tempdata.clear()
 
-def delete():
-    E1.delete(0,END)
-    E2.delete(0,END)
-    E3.delete(0,END)
-    E4.delete(0,END)
-    E5.delete(0,END)
-    E6.delete(0,END)
+def upload(value):
+    messagebox.askokcancel("Warning", "Data Akan Diupload Ke Database")
 
-#NAMA
-L1 = Label(tk,bg='purple',fg='white',text="Nama")
-L1.grid(row = 0, column = 0, sticky = W, pady = 2)
-E1 = Entry(fg="white", bg="blue", width=25)
-E1.grid(row = 0, column = 1, pady = 2)
-#TTL
-L2 = Label(tk,bg='purple',fg='white', text="Tempat Tanggal Lahir")
-L2.grid(row = 1, column = 0, sticky = W, pady = 2)
-E2 = Entry(fg="white", bg="blue", width=25)
-E2.grid(row = 1, column = 1, pady = 2)
-#KELAMIN
-L3 = Label(tk,bg='purple',fg='white', text="Jenis Kelamin")
-L3.grid(row = 2, column = 0, sticky = W, pady = 2)
-E3 = Entry(fg="white", bg="blue", width=25)
-E3.grid(row = 2, column = 1, pady = 2)
-#AGAMA
-L4 = Label(tk,bg='purple',fg='white', text="Agama")
-L4.grid(row = 3, column = 0, sticky = W, pady = 2)
-E4 = Entry(fg="white", bg="blue", width=25)
-E4.grid(row = 3, column = 1, pady = 2)
-#ALAMAT
-L5 = Label(tk,bg='purple',fg='white', text="Alamat")
-L5.grid(row = 4, column = 0, sticky = W, pady = 2)
-E5 = Entry(fg="white", bg="blue", width=25)
-E5.grid(row = 4, column = 1, pady = 2)
-#PEKERJAAN
-L6 = Label(tk,bg='purple',fg='white', text="Pekerjaan")
-L6.grid(row = 5, column = 0, sticky = W, pady = 2)
-E6 = Entry(fg="white", bg="blue", width=25)
-E6.grid(row = 5, column = 1, pady = 2)
-#ADD
-button=tkinter.Button(tk, text='TAMBAHKAN DATA', bg="blue", fg="White", width=20, command=add)
-button.grid(row = 6, column = 1, sticky = W, pady = 2)
-#SAVE
-button=tkinter.Button(tk, text='SIMPAN DATA', bg="blue", fg="White", width=20, command=save)
-button.grid(row = 7, column = 1, sticky = W, pady = 2)
-#CETAK
-button=tkinter.Button(tk, text='CETAK KARTU', bg="blue", fg="White", width=20, command=cetak)
-button.grid(row = 8, column = 1, sticky = W, pady = 2)
-#EXIT
-button=tkinter.Button(tk, text='KELUAR', bg="blue", fg="White", width=20, command=tk.quit)
-button.grid(row = 9, column = 1, sticky = W, pady = 2)
-tk.mainloop()
+
+
+    if value == 'regis':
+        kode = "upload"
+    elif value == 'remove':
+        kode = "update"
+    filename = "Data.csv"
+    filesize = os.path.getsize(filename)
+    s = socket.socket()
+    print(f"[+] Connecting to {host}:{port}")
+    s.connect((host, port))
+    print("[+] Connected.")
+    s.send(f"{filename}{SEPARATOR}{filesize}{SEPARATOR}{kode}".encode())
+    progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+    with open(filename, "rb") as f:
+        while True:
+            bytes_read = f.read(BUFFER_SIZE)
+            if not bytes_read:
+                break
+            s.sendall(bytes_read)
+            progress.update(len(bytes_read))
+    clearcsv(filename)
+    s.close()
+
+def clearcsv(filename):
+    f = open(filename, "w+")
+    f.close()
+
+def cleartree(tv1):
+    for i in tv1.get_children():
+        tv1.delete(i)
+
+def treeload(tv1):
+    cleartree(tv1)
+    filename = "Data.csv"
+    df = pd.read_csv(filename)
+    tv1['column'] = header
+    tv1['show'] = 'headings'
+    for column in tv1['columns']:
+        tv1.heading(column, text=column)
+
+    with open('data.csv', newline='\n') as file_obj:
+        reader_obj = csv.reader(file_obj)
+      
+        for row in reader_obj:
+            tv1.insert('',  'end', values=row)
+
+def viewadmin(tv1):
+    selected = tv1.focus()
+    details = tv1.item(selected)
+    values = details.get('values')
+    count = 0
+
+    my_image = Image.open('card.png')
+    image_editable = ImageDraw.Draw(my_image)
+    for i in values:
+        cetakkartu(my_image, image_editable, i, count)
+        count += 1
+    del count 
+
+def cetakkartu(my_image, image_editable, value, count):
+    my_foto = Image.open(".\\Foto\\avatar.jpg")
+    txt_font = ImageFont.truetype('arial.ttf',40)
+    if count == 0:
+        image_editable.text((50,140), value, (0, 0, 0), font=txt_font)
+    elif count == 1:
+        image_editable.text((350,270), value, (0, 0, 0), font=txt_font)
+    elif count == 2:
+        image_editable.text((50, 270), value, (0, 0, 0), font=txt_font)
+    elif count == 3:
+        image_editable.text((50, 400), value, (0, 0, 0), font=txt_font)
+    elif count == 4:
+        image_editable.text((330, 400), value, (0, 0, 0), font=txt_font)
+    elif count == 5:
+        image_editable.text((630, 400), value, (0, 0, 0), font=txt_font)
+        my_image.paste(my_foto,(666,140))
+        my_image.show()
+        my_image.save('result.png')
+
+# def remove(tv1):
+#     # Konfirmasi
+#     res = messagebox.askquestion("Confirmation", "Data akan dihapus. \nApakah Anda yakin?")
+#     if res == 'yes':
+#         pass
+#     else:
+#         return None
+
+#     file_name = 'data.csv'
+#     selected = tv1.focus()
+#     details = tv1.item(selected)
+#     value = details.get('values')[0]
+#     print(details)
+    
+#     df = pd.read_csv(file_name)
+
+#     with open(file_name, 'w', newline='\n') as f:
+#         w = writer(f, delimiter=',')
+#         for baris in df:
+#             if value in baris:
+#                 continue
+#             else:
+#                 w.writerows(baris)
+
+#     # df = df.drop(df[(df.a == value)].index)
+#     # df.to_csv(file_name, encoding='utf-8', index=False)
+
+#     upload('remove')
+#     treeload(tv1)
+
+if __name__ == '__main__':
+    tk = tkinter.Tk()
+    tk.title("Data Base System")
+    tk.geometry('800x600')
+    tk.resizable(False, False)
+    tk.configure(bg='white')
+
+     # Background Image
+    tk.backGroundImage = PhotoImage(file='bg.png')
+    tk.backGroundImageLabel = Label(tk, image=tk.backGroundImage)
+    tk.backGroundImageLabel.pack()
+
+    # Canvas
+    box = Canvas(tk, bg='white')
+    box.place(relx=0.5, rely=0.55, anchor=CENTER)
+
+    # Frame for Login Page
+    f1 = tkinter.LabelFrame(box, text='Login')
+    # Frame for Register Page
+    f2 = tkinter.LabelFrame(box, text='Register')
+    # Frame for TreeView
+    frame1 = tkinter.LabelFrame(box, text='CSV Data')
+    # Frame for file interactions
+    frame2 = tkinter.LabelFrame(box, text='Access File')
+
+    toppage(tk, box, f1, f2, frame1, frame2)
+    tk.mainloop()
